@@ -2,7 +2,6 @@ package model
 
 import (
 	"context"
-	"errors"
 	"log"
 	"reflect"
 	"strings"
@@ -33,7 +32,7 @@ type (
 	}
 )
 
-var ErrNotFound = errors.New("not exists")
+var ErrNotFound = mgo.ErrNotFound
 
 func (model *Model) OnEvent(name string, funcs ...ModelEventFunc) {
 	if model.Events == nil {
