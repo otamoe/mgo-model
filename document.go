@@ -59,6 +59,7 @@ type (
 		Update() (err error)
 		UpdateAndFind(update interface{}, isNew bool) (err error)
 		Delete() (err error)
+		Restore() (err error)
 		Validate() (err error)
 
 		Populate(document DocumentInterface) (documentPopulate *DocumentPopulate)
@@ -286,7 +287,16 @@ func (document *DocumentBase) UpdateAndFind(update interface{}, isNew bool) (err
 func (document *DocumentBase) Delete() (err error) {
 	documentOldv := reflect.Indirect(reflect.ValueOf(document.Old))
 	id := documentOldv.FieldByName("ID").Interface()
-	if err = document.Model.Query(document.Context).ID(id).Delete(); err != nil {
+	if err = document.Model.Query(document.Context).ID(id).NeDeleted().Delete(); err != nil {
+		err = mongoError(err)
+		return
+	}
+	return
+}
+func (document *DocumentBase) Restore() (err error) {
+	documentOldv := reflect.Indirect(reflect.ValueOf(document.Old))
+	id := documentOldv.FieldByName("ID").Interface()
+	if err = document.Model.Query(document.Context).ID(id).EqDeleted().Restore(); err != nil {
 		err = mongoError(err)
 		return
 	}
