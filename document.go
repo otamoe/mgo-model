@@ -124,22 +124,14 @@ func (document *DocumentBase) Validate() (err error) {
 			return
 		}
 	}
-	if err = document.Model.DoEvent("save", document.Ref); err != nil {
-		return
-	}
-	var name string
-	if document.IsNew {
-		name = "insert"
-	} else {
-		name = "update"
-	}
-	if err = document.Model.DoEvent(name, document.Ref); err != nil {
+	if err = document.Model.DoEvent("validate", document.Ref); err != nil {
 		return
 	}
 	return
 }
 
 func (document *DocumentBase) Insert() (err error) {
+
 	if !document.IsNew {
 		err = errors.New("Document isNew=false")
 		return
@@ -174,6 +166,14 @@ func (document *DocumentBase) Insert() (err error) {
 			return
 		}
 	}
+
+	if err = document.Model.DoEvent("save", document.Ref); err != nil {
+		return
+	}
+	if err = document.Model.DoEvent("insert", document.Ref); err != nil {
+		return
+	}
+
 	// 插入
 	if err = document.Model.DB(document.Context).Insert(document.Ref); err != nil {
 		err = mongoError(err)
@@ -249,6 +249,14 @@ func (document *DocumentBase) Update() (err error) {
 	}
 
 	id := documentOldv.FieldByName("ID").Interface()
+
+	if err = document.Model.DoEvent("save", document.Ref); err != nil {
+		return
+	}
+
+	if err = document.Model.DoEvent("update", document.Ref); err != nil {
+		return
+	}
 
 	if err = document.Model.Query(document.Context).ID(id).Update(update); err != nil {
 		err = mongoError(err)
