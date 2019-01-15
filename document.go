@@ -199,6 +199,15 @@ func (document *DocumentBase) Update() (err error) {
 	if documentStruct, err = DocumentStructParse(documentv.Type()); err != nil {
 		return
 	}
+
+	if err = document.Model.DoEvent("save", document.Ref); err != nil {
+		return
+	}
+
+	if err = document.Model.DoEvent("update", document.Ref); err != nil {
+		return
+	}
+
 	set := map[string]interface{}{}
 	unset := map[string]interface{}{}
 	for _, sieldStruct := range documentStruct {
@@ -249,14 +258,6 @@ func (document *DocumentBase) Update() (err error) {
 	}
 
 	id := documentOldv.FieldByName("ID").Interface()
-
-	if err = document.Model.DoEvent("save", document.Ref); err != nil {
-		return
-	}
-
-	if err = document.Model.DoEvent("update", document.Ref); err != nil {
-		return
-	}
 
 	if err = document.Model.Query(document.Context).ID(id).Update(update); err != nil {
 		err = mongoError(err)
