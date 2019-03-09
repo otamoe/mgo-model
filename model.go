@@ -99,6 +99,10 @@ func (model *Model) Create(ctx context.Context) (err error) {
 	if exists, err = model.Exists(ctx); err != nil || exists {
 		return
 	}
+	collection := model.DB(ctx)
+	if err = collection.Create(&mgo.CollectionInfo{}); err != nil {
+		return
+	}
 	if _, err = model.Update(ctx); err != nil {
 		return
 	}
