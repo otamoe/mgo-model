@@ -289,6 +289,9 @@ func reflectFind(maps map[interface{}][]reflectValue, path []string, value refle
 	if value.Kind() == reflect.Ptr {
 		value = value.Elem()
 	}
+	if !value.IsValid() {
+		return
+	}
 	if value.Kind() != reflect.Struct {
 		err = fmt.Errorf("populate: path (%s) not struct  (%s)", name, value.Kind().String())
 		return
