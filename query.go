@@ -19,6 +19,7 @@ type (
 		Sort   []string               `json:"sort,omitempty"`
 		Skip   int                    `json:"skip,omitempty"`
 		Limit  int                    `json:"limit,omitempty"`
+		Hint   []string               `json:"hint,omitempty"`
 		Trash  int                    `json:"trashed,omitempty"`
 	}
 
@@ -163,6 +164,11 @@ func (query *Query) Skip(skip int) *Query {
 
 func (query *Query) Limit(limit int) *Query {
 	query.Options.Limit = limit
+	return query
+}
+
+func (query *Query) Hint(indexKey ...string) *Query {
+	query.Options.Hint = indexKey
 	return query
 }
 
