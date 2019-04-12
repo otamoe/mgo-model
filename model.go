@@ -32,7 +32,7 @@ type (
 	}
 )
 
-var ErrNotFound = mgo.ErrNotFound
+var CONTEXT = "mongo"
 
 func (model *Model) OnEvent(name string, funcs ...ModelEventFunc) {
 	if model.Events == nil {
@@ -71,7 +71,7 @@ func (model *Model) DB(ctx context.Context) (c *mgo.Collection) {
 	if len(names) == 1 {
 		names = []string{"", names[0]}
 	}
-	c = ctx.Value("mongo").(*mgo.Session).DB(names[0]).C(names[1])
+	c = ctx.Value(CONTEXT).(*mgo.Session).DB(names[0]).C(names[1])
 	return
 }
 
@@ -80,7 +80,7 @@ func (model *Model) Exists(ctx context.Context) (exists bool, err error) {
 	if len(names) == 1 {
 		names = []string{"", names[0]}
 	}
-	db := ctx.Value("mongo").(*mgo.Session).DB(names[0])
+	db := ctx.Value(CONTEXT).(*mgo.Session).DB(names[0])
 	var collectionNames []string
 	if collectionNames, err = db.CollectionNames(); err != nil {
 		return

@@ -187,7 +187,6 @@ func (query *Query) PopulatePath(path string, value *Query) *Query {
 
 func (query *Query) One(document interface{}) (err error) {
 	if err = query.Model.DB(query.Context).Find(query.Map()).Select(query.Options.Fields).Sort(query.Options.Sort...).Skip(query.Options.Skip).Limit(1).One(document); err != nil {
-		err = mongoError(err)
 		return
 	}
 	if query.Populate != nil {
@@ -198,7 +197,6 @@ func (query *Query) One(document interface{}) (err error) {
 
 func (query *Query) All(documents interface{}) (err error) {
 	if err = query.Model.DB(query.Context).Find(query.Map()).Select(query.Options.Fields).Sort(query.Options.Sort...).Skip(query.Options.Skip).Limit(query.Options.Limit).All(documents); err != nil {
-		err = mongoError(err)
 		return
 	}
 	if query.Populate != nil {
@@ -209,27 +207,23 @@ func (query *Query) All(documents interface{}) (err error) {
 
 func (query *Query) Count() (n int, err error) {
 	n, err = query.Model.DB(query.Context).Find(query.Map()).Skip(query.Options.Skip).Limit(query.Options.Limit).Count()
-	err = mongoError(err)
 	return
 }
 
 func (query *Query) Explain() (result map[string]interface{}, err error) {
 	result = map[string]interface{}{}
 	err = query.Model.DB(query.Context).Find(query.Map()).Select(query.Options.Fields).Sort(query.Options.Sort...).Skip(query.Options.Skip).Limit(query.Options.Limit).Explain(result)
-	err = mongoError(err)
 	return
 }
 
 func (query *Query) Update(update interface{}) (err error) {
 	err = query.Model.DB(query.Context).Update(query.Map(), update)
-	err = mongoError(err)
 	return
 }
 
 func (query *Query) UpdateAll(update interface{}) (i int, err error) {
 	var info *mgo.ChangeInfo
 	if info, err = query.Model.DB(query.Context).UpdateAll(query.Map(), update); err != nil {
-		err = mongoError(err)
 		return
 	}
 	i = info.Updated
@@ -241,7 +235,6 @@ func (query *Query) UpdateAll(update interface{}) (i int, err error) {
 
 func (query *Query) UpdateAndFind(update interface{}, document interface{}, isNew bool) (err error) {
 	if _, err = query.Model.DB(query.Context).Find(query.Map()).Select(query.Options.Fields).Sort(query.Options.Sort...).Skip(query.Options.Skip).Limit(query.Options.Limit).Apply(mgo.Change{Update: update, ReturnNew: isNew}, document); err != nil {
-		err = mongoError(err)
 		return
 	}
 	return
@@ -250,7 +243,6 @@ func (query *Query) UpdateAndFind(update interface{}, document interface{}, isNe
 func (query *Query) Delete() (err error) {
 	if update := query.deleteUpdate(); update != nil {
 		err = query.Model.DB(query.Context).Update(query.Map(), update)
-		err = mongoError(err)
 		return
 	}
 	return query.ForceDelete()
@@ -260,7 +252,6 @@ func (query *Query) DeleteAll() (i int, err error) {
 	if update := query.deleteUpdate(); update != nil {
 		var info *mgo.ChangeInfo
 		if info, err = query.Model.DB(query.Context).UpdateAll(query.Map(), update); err != nil {
-			err = mongoError(err)
 			return
 		}
 		i = info.Updated
@@ -274,14 +265,12 @@ func (query *Query) DeleteAll() (i int, err error) {
 
 func (query *Query) ForceDelete() (err error) {
 	err = query.Model.DB(query.Context).Remove(query.Map())
-	err = mongoError(err)
 	return
 }
 
 func (query *Query) ForceDeleteAll() (i int, err error) {
 	var info *mgo.ChangeInfo
 	if info, err = query.Model.DB(query.Context).RemoveAll(query.Map()); err != nil {
-		err = mongoError(err)
 		return
 	}
 	i = info.Removed
@@ -295,9 +284,8 @@ func (query *Query) ForceDeleteAll() (i int, err error) {
 func (query *Query) Restore() (err error) {
 	if update := query.restoreUpdate(); update != nil {
 		err = query.Model.DB(query.Context).Update(query.Map(), update)
-		err = mongoError(err)
 	} else {
-		err = ErrNotFound
+		err = mgo.ErrNotFound
 	}
 	return
 }
@@ -306,7 +294,6 @@ func (query *Query) RestoreAll() (i int, err error) {
 	if update := query.restoreUpdate(); update != nil {
 		var info *mgo.ChangeInfo
 		if info, err = query.Model.DB(query.Context).UpdateAll(query.Map(), update); err != nil {
-			err = mongoError(err)
 			return
 		}
 		i = info.Updated
@@ -314,7 +301,7 @@ func (query *Query) RestoreAll() (i int, err error) {
 			i = info.Matched
 		}
 	} else {
-		err = ErrNotFound
+		err = mgo.ErrNotFound
 	}
 	return
 }
@@ -439,11 +426,4 @@ func (query *Query) restoreUpdate() (update bson.M) {
 		update["$unset"] = map[string]interface{}{tag.BSON: 1}
 	}
 	return
-}
-
-func mongoError(err error) error {
-	if err == mgo.ErrNotFound {
-		err = ErrNotFound
-	}
-	return err
 }

@@ -176,7 +176,6 @@ func (document *DocumentBase) Insert() (err error) {
 
 	// 插入
 	if err = document.Model.DB(document.Context).Insert(document.Ref); err != nil {
-		err = mongoError(err)
 		return
 	}
 	document.ResetDocumentOld()
@@ -260,7 +259,6 @@ func (document *DocumentBase) Update() (err error) {
 	id := documentOldv.FieldByName("ID").Interface()
 
 	if err = document.Model.Query(document.Context).ID(id).Update(update); err != nil {
-		err = mongoError(err)
 		return
 	}
 	document.ResetDocumentOld()
@@ -286,7 +284,6 @@ func (document *DocumentBase) UpdateAndFind(update interface{}, isNew bool) (err
 
 	// document
 	if err = query.ID(id).UpdateAndFind(update, documentV2.Interface(), isNew); err != nil {
-		err = mongoError(err)
 		return
 	}
 	documentV1.Elem().Set(documentV2.Elem())
@@ -297,7 +294,6 @@ func (document *DocumentBase) Delete() (err error) {
 	documentOldv := reflect.Indirect(reflect.ValueOf(document.Old))
 	id := documentOldv.FieldByName("ID").Interface()
 	if err = document.Model.Query(document.Context).ID(id).NeDeleted().Delete(); err != nil {
-		err = mongoError(err)
 		return
 	}
 	return
@@ -306,7 +302,6 @@ func (document *DocumentBase) Restore() (err error) {
 	documentOldv := reflect.Indirect(reflect.ValueOf(document.Old))
 	id := documentOldv.FieldByName("ID").Interface()
 	if err = document.Model.Query(document.Context).ID(id).EqDeleted().Restore(); err != nil {
-		err = mongoError(err)
 		return
 	}
 	return
