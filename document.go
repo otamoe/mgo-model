@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/globalsign/mgo/bson"
 )
@@ -489,11 +490,6 @@ func DocumentStructParse(t reflect.Type) (documentStruct DocumentStruct, err err
 		} else if value.BSON != "" {
 			elem := field.Type
 
-			// 指针 找子级
-			if elem.Kind() == reflect.Ptr {
-				elem = elem.Elem()
-			}
-
 			// 切片 找子级
 			if elem.Kind() == reflect.Slice {
 				elem = elem.Elem()
@@ -505,7 +501,7 @@ func DocumentStructParse(t reflect.Type) (documentStruct DocumentStruct, err err
 			}
 
 			// 结构体允许嵌套
-			if elem.Kind() == reflect.Struct {
+			if elem.Kind() == reflect.Struct && elem != reflect.TypeOf(time.Time{}) {
 				if value.Children, err = DocumentStructParse(elem); err != nil {
 					return
 				}

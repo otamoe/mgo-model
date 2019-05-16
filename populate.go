@@ -58,10 +58,10 @@ func (populate Populate) All(documents interface{}) (err error) {
 	if documentStruct, err = DocumentStructParse(documentV.Type()); err != nil {
 		return
 	}
+
 	// 遍历填充
 	chans := make(chan error, len(populate))
 	for path, query := range populate {
-		findPath := ""
 		findValue := map[interface{}][]reflectValue{}
 		names := strings.Split(path, ".")
 		for i := 0; i < slicev.Len(); i++ {
@@ -69,19 +69,21 @@ func (populate Populate) All(documents interface{}) (err error) {
 			if documentV.Kind() == reflect.Interface {
 				documentV = documentV.Elem()
 			}
-			if findPath, err = reflectFind(findValue, names, documentV, documentStruct); err != nil {
+			if err = reflectFind(findValue, names, documentV, documentStruct); err != nil {
 				return
 			}
 		}
+
 		if len(findValue) != 0 {
-			var names []string
-			if findPath != "" {
-				names = strings.Split(findPath, ".")
+			var findPath []string
+			if findPath, err = getFindPath(names, documentStruct); err != nil {
+				return
 			}
-			// if err = reflectPopulate(names, findValue, query); err != nil {
+			// if err = reflectPopulate(findPath, findValue, query); err != nil {
 			// 	return
 			// }
-			go reflectPopulateChan(names, findValue, query, chans)
+			// chans <- nil
+			go reflectPopulateChan(findPath, findValue, query, chans)
 		} else {
 			chans <- nil
 		}
@@ -102,7 +104,6 @@ func reflectPopulateChan(findPath []string, findValueMap map[interface{}][]refle
 }
 
 func reflectPopulate(findPath []string, findValueMap map[interface{}][]reflectValue, query *Query) (err error) {
-
 	// 切片类型 切片 切片指针
 	var sliceTyp reflect.Type
 	var sliceVal reflect.Value
@@ -283,7 +284,21 @@ func reflectSet(value reflect.Value, field reflect.Value, fieldPath []reflectPat
 	return
 }
 
-func reflectFind(maps map[interface{}][]reflectValue, path []string, value reflect.Value, valueStruct DocumentStruct) (findPath string, err error) {
+func getFindPath(names []string, documentStruct DocumentStruct) (findPath []string, err error) {
+	var documentStructField DocumentStructField
+	for _, name := range names {
+		if documentStruct == nil {
+			err = fmt.Errorf("populate: getFindPath (%v)", names)
+			return
+		}
+		documentStructField = documentStruct[name]
+		documentStruct = documentStructField.Children
+	}
+	findPath = strings.Split(documentStructField.Populate.Find, ".")
+	return
+}
+
+func reflectFind(maps map[interface{}][]reflectValue, path []string, value reflect.Value, valueStruct DocumentStruct) (err error) {
 	name := path[0]
 
 	if value.Kind() == reflect.Ptr {
@@ -310,18 +325,18 @@ func reflectFind(maps map[interface{}][]reflectValue, path []string, value refle
 		switch field.Kind() {
 		case reflect.Map:
 			for _, key := range field.MapKeys() {
-				if findPath, err = reflectFind(maps, fieldPath, field.MapIndex(key), fieldStruct.Children); err != nil {
+				if err = reflectFind(maps, fieldPath, field.MapIndex(key), fieldStruct.Children); err != nil {
 					return
 				}
 			}
 		case reflect.Slice:
 			for i := 0; i < field.Len(); i++ {
-				if findPath, err = reflectFind(maps, fieldPath, field.Index(i), fieldStruct.Children); err != nil {
+				if err = reflectFind(maps, fieldPath, field.Index(i), fieldStruct.Children); err != nil {
 					return
 				}
 			}
 		default:
-			if findPath, err = reflectFind(maps, fieldPath, field, fieldStruct.Children); err != nil {
+			if err = reflectFind(maps, fieldPath, field, fieldStruct.Children); err != nil {
 				return
 			}
 		}
@@ -330,8 +345,6 @@ func reflectFind(maps map[interface{}][]reflectValue, path []string, value refle
 			err = fmt.Errorf("populate: path (%s) tag is empty", name)
 			return
 		}
-
-		findPath = fieldStruct.Populate.Find
 
 		// if !reflectValueEmpty(field) {
 		// 	return
